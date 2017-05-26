@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>动态粒子</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            width: 100%;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        canvas {
+            /*width: 100%;*/
+            /*height: 100%;*/
+        }
+    </style>
+</head>
+<body>
+<div>
+
+</div>
+<canvas id="canvas"></canvas>
+<script>
+    var can = document.getElementById('canvas');
+    var ctx = can.getContext('2d');
+    can.width = window.innerWidth;
+    can.height = window.innerHeight;
+    can.style.background = '#000';
+    let mousePositionX = can.width / 2;
+    let mousePositionY = can.height / 2;
+    let circles = [];
+
+    class Dot {
+        constructor(distancs, d) {
+
+            this.distance = distancs //两个粒子之间的距离
+            this.d_r = d;//鼠标半径
+            //圆形粒子随机圆心坐标点
+            this.x = Math.random() * can.width;
+            this.y = Math.random() * can.height;
+            //x y 轴的速度
+            this.vx = (-0.5 + Math.random()) * 2;
+            this.vy = (-0.5 + Math.random()) * 2;
+            this.radius = Math.random() * 5;
+            this.r = 0;
+            this.g = 0;
+            this.b = 0;
+
+            this.style = this.colorV();
+
+        }
+
+        //混合两个圆形粒子的颜色
+        mixConnect(c1, r1, c2, r2) {//圆的颜色 半径
+            return (c1 * r1 + c2 * r2) / (r1 + r2);
+        };
+
+        //生成线条的颜色
+        lineColor(dot1, dot2) {//获取具体的圆的颜色再计算
+            var r = this.mixConnect(dot1.r, dot1.radius, dot2.r, dot2.radius);
+            var g = this.mixConnect(dot1.g, dot1.radius, dot2.g, dot2.radius);
+            var b = this.mixConnect(dot1.b, dot1.radius, dot2.b, dot2.radius);
+            return this.createColorStyle(Math.floor(r), Math.floor(g), Math.floor(b));
+        }
+
+        colorValue(min) {
+            return Math.floor(Math.random() * 255 + min);
+        }
+
+        createColorStyle(r, g, b) {
+            return "rgba(" + r + "," + g + "," + b + ", 1)";
+        }
+
+        //生成圆形粒子的颜色对象
+        colorV(min) {
+            var min = min || 0;
+            this.r = this.colorValue(min);
+            this.g = this.colorValue(min);
+            this.b = this.colorValue(min);
+            return this.createColorStyle(this.r, this.g, this.b);
+
+        }
+
+        // 圆圈移动的距离必须在屏幕范围内
+        move() {
+            this.vx = (this.x < can.width && this.x > 0) ? this.vx : (-this.vx);
+            this.vy = (this.y < can.height && this.y > 0) ? this.vy : (-this.vy);
+            this.x += this.vx;
+            this.y += this.vy;
+        }
+
+        //绘制图形
+        draw() {
+            ctx.beginPath()
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+            ctx.fillStyle = this.style;
+            ctx.closePath();
+            ctx.fill();
+            this.move();
+        }
+
+        //绘制连接连个点的线条
+        drawLine(_circle, _circle2) {
+            let dx = this.x - _circle.x;
+            let dy = this.y - _circle.y;
+            let rx = this.x - mousePositionX;
+            let ry = this.y - mousePositionY;
+            let r = Math.sqrt(rx * rx + ry * ry)
+            let d = Math.sqrt(dx * dx + dy * dy)
+            if (d < this.distance && r < this.d_r) {
+
+                ctx.beginPath();
+                //开始一条路径，移动到位置 this.x,this.y。创建到达位置 _circle.x,_circle.y 的一条线：
+                ctx.moveTo(this.x, this.y);   //起始点
+                ctx.lineTo(_circle.x, _circle.y);   //终点
+                ctx.closePath();
+                ctx.strokeStyle = this.lineColor(_circle2, _circle);
+                ctx.stroke();
+            }
+        }
+    }
+
+
+    var x = function () {
+        ctx.clearRect(0, 0, can.width, can.height)
+        for (let i = 0; i < circles.length; i++) {
+            circles[i].draw();
+            for (let j = i + 1; j < circles.length; j++) {
+                circles[i].drawLine(circles[j], circles[i])
+            }
+        }
+        window.requestAnimationFrame(x);
+    }
+
+    let init = function (num) {
+        for (var i = 0; i < num; i++) {
+            circles.push(new Dot(90, 100));//两点距离 和 鼠标半径
+        }
+
+        x();
+    }
+    init(500);
+
+
+    can.onmousemove = function (ev) {
+        var ev = ev || window.event;
+
+        mousePositionX = ev.pageX;
+        mousePositionY = ev.pageY;
+    }
+    can.onmouseout = function () {
+        mousePositionX = can.width / 2;
+        mousePositionY = can.height / 2;
+    }
+</script>
+</body>
+</html>
